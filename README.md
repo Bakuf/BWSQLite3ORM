@@ -14,6 +14,8 @@ For now the types that can be stored are :
 
 For now queries works only for the first ones, also NSDate if you convert it to timeIntervalSince1970 in your query.
 
+Also the core of the classes is the BWDB class made by Bill Weinman with some modifications,is an old one, so it needs the compiler flag -fno-objc-arc for it to work.
+
 Enjoy =)
 
 # TODO List
