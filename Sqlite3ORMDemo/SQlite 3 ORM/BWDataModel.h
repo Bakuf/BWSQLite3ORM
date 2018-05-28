@@ -7,6 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
 @interface BWDataModel : NSObject <NSCoding>
 
@@ -15,6 +16,10 @@
 //Settings Properties to override in your own class
 + (BOOL)absoluteRow;
 + (void (^)(bool ifTableExists))initBlockCompletition;
++ (BOOL)saveDateWithOutTime;
+
+//Utility Methods
++ (NSDate *)dateWithOutTime:(NSDate *)datDate;
 
 //CRUD Methods
 
@@ -25,7 +30,8 @@
 + (void)deleteTable;
 + (void)deleteDatabase;
 + (NSMutableArray*)getAllRows;
-+ (NSMutableArray*)makeQuery:(NSString*)query;
++ (NSMutableArray*)getAllRowsOrderedBy:(NSString*)orderedBy;
++ (NSMutableArray*)makeSelectQuery:(NSString*)query;
 + (NSMutableArray*)rawQuery:(NSString*)query;
 
 - (void)swapOrderWithDataModel:(BWDataModel*)otherDataModel;
@@ -39,5 +45,7 @@
 
 - (NSDictionary*)getParseDictionaryValues;
 - (instancetype)setDataModelValuesFromDictionary:(NSDictionary*)dict;
+
++ (NSArray*)parseResultsArray:(NSArray*)resultsArray;
 
 @end

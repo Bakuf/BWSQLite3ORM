@@ -13,6 +13,9 @@
 
 + (instancetype)sharedInstance;
 
++ (void)scanClassesAndInitializeAllBWDataModels;
++ (void)initializeTablesWithDataModelClasses:(NSArray*)dataModelClasses;
+
 - (void)dropTableForDataModelClass:(Class)dataModelClass;
 - (void)deleteDataBase;
 
@@ -29,6 +32,7 @@
 
 //Returns a mutable array of the data model class given with all the rows of the table
 - (NSMutableArray*)getAllRowsForDataModel:(Class)dataModelClass;
+- (NSMutableArray*)getAllRowsForDataModel:(Class)dataModelClass orderedBy:(NSString*)orderedBy;
 
 //Get the last row of the table for the data model class given
 - (BWDataModel*)getLastInsertedRowForDataModel:(Class)dataModelClass;
@@ -40,6 +44,6 @@
 //raw data :
 //NSDate = float
 //Dictionary and Array = JSON
-- (NSMutableArray*)getRawDataFromQuery:(NSString*)query;
+- (NSMutableArray*)getRawDataFromQuery:(NSString*)theQuery makeFromClass:(Class)dataModelClass;
 
 @end

@@ -137,7 +137,7 @@ static const char *getPropertyType(objc_property_t property) {
         }
         
         if ([type isEqualToString:@"NSDate"]) {
-            NSDate* date = [[NSDate alloc] initWithTimeIntervalSince1970:[dict[key] doubleValue]];
+            NSDate *date = [[NSDate alloc] initWithTimeIntervalSince1970:[dict[key] doubleValue]];
             [self setValue:date forKey:key];
         }
         
@@ -153,12 +153,21 @@ static const char *getPropertyType(objc_property_t property) {
             [self setValue:dict[key] forKey:key];
         }
         
-        if ([type isEqualToString:@"c"]) {
+        if ([type isEqualToString:@"c"] || [type isEqualToString:@"B"]) {
             [self setValue:dict[key] forKey:key];
         }
     }
     
     return self;
+}
+
++ (NSArray*)parseResultsArray:(NSArray*)resultsArray{
+    NSMutableArray *parsedArray = [[NSMutableArray alloc] init];
+    for (NSDictionary *tmpDict in resultsArray) {
+        BWDataModel *model =(BWDataModel*)[[[self class] alloc] init];
+        [parsedArray addObject:[model setDataModelValuesFromDictionary:tmpDict]];
+    }
+    return parsedArray;
 }
 
 - (id)getFormatedValueForKey:(NSString*)key withType:(NSString*)type{
@@ -168,6 +177,9 @@ static const char *getPropertyType(objc_property_t property) {
     
     if ([type isEqualToString:@"NSDate"]) {
         NSDate *tmpDate = [self valueForKey:key];
+        if ([[self class] saveDateWithOutTime]){
+            tmpDate = [[self class] dateWithOutTime:tmpDate];
+        }
         return [NSNumber numberWithDouble:[tmpDate timeIntervalSince1970]];
     }
     
@@ -189,7 +201,7 @@ static const char *getPropertyType(objc_property_t property) {
         return [self valueForKey:key];
     }
     
-    if ([type isEqualToString:@"c"]) {
+    if ([type isEqualToString:@"c"] || [type isEqualToString:@"B"]) {
         return [NSNumber numberWithInt:(int)[[self valueForKey:key] integerValue]];
     }
     
@@ -217,6 +229,20 @@ static const char *getPropertyType(objc_property_t property) {
 
 + (void (^)(bool))initBlockCompletition{
     return nil;
+}
+
++ (BOOL)saveDateWithOutTime{
+    return NO;
+}
+
+#pragma mark NSDate Helpers
+
++ (NSDate *)dateWithOutTime:(NSDate *)datDate {
+    if( datDate == nil ) {
+        datDate = [NSDate date];
+    }
+    NSDateComponents* comps = [[NSCalendar currentCalendar] components:NSCalendarUnitYear|NSCalendarUnitMonth|NSCalendarUnitDay fromDate:datDate];
+    return [[NSCalendar currentCalendar] dateFromComponents:comps];
 }
 
 #pragma mark Array and Dictionary Parse Helpers
@@ -287,12 +313,16 @@ static const char *getPropertyType(objc_property_t property) {
     return [[BWDataBaseManager sharedInstance] getAllRowsForDataModel:[self class]];
 }
 
-+ (NSMutableArray*)makeQuery:(NSString*)query{
++ (NSMutableArray*)getAllRowsOrderedBy:(NSString*)orderedBy{
+    return [[BWDataBaseManager sharedInstance] getAllRowsForDataModel:[self class] orderedBy:orderedBy];
+}
+
++ (NSMutableArray*)makeSelectQuery:(NSString*)query{
     return [[BWDataBaseManager sharedInstance] getRowsFromQuery:query forDataModel:[self class]];
 }
 
 + (NSMutableArray*)rawQuery:(NSString*)query{
-    return [[BWDataBaseManager sharedInstance] getRawDataFromQuery:query];
+    return [[BWDataBaseManager sharedInstance] getRawDataFromQuery:query makeFromClass:[self class]];
 }
 
 - (void)swapOrderWithDataModel:(BWDataModel*)otherDataModel{

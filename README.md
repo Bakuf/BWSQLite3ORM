@@ -14,8 +14,6 @@ For now the types that can be stored are :
 
 For now queries works only for the first ones, also NSDate if you convert it to timeIntervalSince1970 in your query.
 
-Also the core of the classes is the BWDB class made by Bill Weinman with some modifications,is an old one, so it needs the compiler flag -fno-objc-arc for it to work.
-
 Enjoy =)
 
 # TODO List
@@ -23,7 +21,6 @@ Enjoy =)
 - Include Transactions
 - Store other BWDataModels inside a BWDataModel
 - Store NSData
-- Define type of attributes based on property types when the table is created (right now they all are strings)
 
 Author
 ----

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7351807220BC8569008DBA63 /* BWDataBaseManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 7351806E20BC8568008DBA63 /* BWDataBaseManager.m */; };
+		7351807320BC8569008DBA63 /* BWDataModel.m in Sources */ = {isa = PBXBuildFile; fileRef = 7351806F20BC8568008DBA63 /* BWDataModel.m */; };
 		73940F5B19BE148C0043FCF7 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 73940F5A19BE148C0043FCF7 /* Foundation.framework */; };
 		73940F5D19BE148C0043FCF7 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 73940F5C19BE148C0043FCF7 /* CoreGraphics.framework */; };
 		73940F5F19BE148C0043FCF7 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 73940F5E19BE148C0043FCF7 /* UIKit.framework */; };
@@ -21,9 +23,6 @@
 		73940F8019BE148D0043FCF7 /* Sqlite3ORMDemoTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 73940F7F19BE148D0043FCF7 /* Sqlite3ORMDemoTests.m */; };
 		73940F8E19BE15180043FCF7 /* RTList.m in Sources */ = {isa = PBXBuildFile; fileRef = 73940F8C19BE15180043FCF7 /* RTList.m */; };
 		73940F8F19BE15180043FCF7 /* RTList.xib in Resources */ = {isa = PBXBuildFile; fileRef = 73940F8D19BE15180043FCF7 /* RTList.xib */; };
-		73940F9719BE161B0043FCF7 /* BWDataBaseManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 73940F9219BE161B0043FCF7 /* BWDataBaseManager.m */; };
-		73940F9819BE161B0043FCF7 /* BWDataModel.m in Sources */ = {isa = PBXBuildFile; fileRef = 73940F9419BE161B0043FCF7 /* BWDataModel.m */; };
-		73940F9919BE161B0043FCF7 /* BWDB.m in Sources */ = {isa = PBXBuildFile; fileRef = 73940F9619BE161B0043FCF7 /* BWDB.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		73940F9C19BE2B530043FCF7 /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 73940F9B19BE2B530043FCF7 /* libsqlite3.dylib */; };
 		73940F9F19BE2C110043FCF7 /* SODTableInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 73940F9E19BE2C110043FCF7 /* SODTableInfo.m */; };
 		73940FA219BE50A80043FCF7 /* SODSettings.m in Sources */ = {isa = PBXBuildFile; fileRef = 73940FA119BE50A80043FCF7 /* SODSettings.m */; };
@@ -40,6 +39,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7351806E20BC8568008DBA63 /* BWDataBaseManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BWDataBaseManager.m; sourceTree = "<group>"; };
+		7351806F20BC8568008DBA63 /* BWDataModel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BWDataModel.m; sourceTree = "<group>"; };
+		7351807020BC8568008DBA63 /* BWDataBaseManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BWDataBaseManager.h; sourceTree = "<group>"; };
+		7351807120BC8569008DBA63 /* BWDataModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BWDataModel.h; sourceTree = "<group>"; };
 		73940F5719BE148C0043FCF7 /* Sqlite3ORMDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sqlite3ORMDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		73940F5A19BE148C0043FCF7 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		73940F5C19BE148C0043FCF7 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
@@ -59,12 +62,6 @@
 		73940F8B19BE15180043FCF7 /* RTList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTList.h; sourceTree = "<group>"; };
 		73940F8C19BE15180043FCF7 /* RTList.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTList.m; sourceTree = "<group>"; };
 		73940F8D19BE15180043FCF7 /* RTList.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = RTList.xib; sourceTree = "<group>"; };
-		73940F9119BE161B0043FCF7 /* BWDataBaseManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BWDataBaseManager.h; sourceTree = "<group>"; };
-		73940F9219BE161B0043FCF7 /* BWDataBaseManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BWDataBaseManager.m; sourceTree = "<group>"; };
-		73940F9319BE161B0043FCF7 /* BWDataModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BWDataModel.h; sourceTree = "<group>"; };
-		73940F9419BE161B0043FCF7 /* BWDataModel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BWDataModel.m; sourceTree = "<group>"; };
-		73940F9519BE161B0043FCF7 /* BWDB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BWDB.h; sourceTree = "<group>"; };
-		73940F9619BE161B0043FCF7 /* BWDB.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BWDB.m; sourceTree = "<group>"; };
 		73940F9B19BE2B530043FCF7 /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
 		73940F9D19BE2C110043FCF7 /* SODTableInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SODTableInfo.h; sourceTree = "<group>"; };
 		73940F9E19BE2C110043FCF7 /* SODTableInfo.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SODTableInfo.m; sourceTree = "<group>"; };
@@ -184,12 +181,10 @@
 		73940F9019BE161B0043FCF7 /* SQlite 3 ORM */ = {
 			isa = PBXGroup;
 			children = (
-				73940F9119BE161B0043FCF7 /* BWDataBaseManager.h */,
-				73940F9219BE161B0043FCF7 /* BWDataBaseManager.m */,
-				73940F9319BE161B0043FCF7 /* BWDataModel.h */,
-				73940F9419BE161B0043FCF7 /* BWDataModel.m */,
-				73940F9519BE161B0043FCF7 /* BWDB.h */,
-				73940F9619BE161B0043FCF7 /* BWDB.m */,
+				7351807020BC8568008DBA63 /* BWDataBaseManager.h */,
+				7351806E20BC8568008DBA63 /* BWDataBaseManager.m */,
+				7351807120BC8569008DBA63 /* BWDataModel.h */,
+				7351806F20BC8568008DBA63 /* BWDataModel.m */,
 			);
 			path = "SQlite 3 ORM";
 			sourceTree = "<group>";
@@ -304,12 +299,11 @@
 			files = (
 				73940F6719BE148D0043FCF7 /* main.m in Sources */,
 				73940F8E19BE15180043FCF7 /* RTList.m in Sources */,
-				73940F9919BE161B0043FCF7 /* BWDB.m in Sources */,
 				73940F6B19BE148D0043FCF7 /* SODAppDelegate.m in Sources */,
-				73940F9719BE161B0043FCF7 /* BWDataBaseManager.m in Sources */,
 				73940F9F19BE2C110043FCF7 /* SODTableInfo.m in Sources */,
-				73940F9819BE161B0043FCF7 /* BWDataModel.m in Sources */,
+				7351807320BC8569008DBA63 /* BWDataModel.m in Sources */,
 				73940FA219BE50A80043FCF7 /* SODSettings.m in Sources */,
+				7351807220BC8569008DBA63 /* BWDataBaseManager.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
