@@ -11,7 +11,6 @@
 #import <sqlite3.h>
 
 #define DatabaseName @"DB.db"
-//#define DatabaseName @"Pinza-newest-27062020.db"
 
 @interface BWDataBaseManager(){
     sqlite3 *database;
