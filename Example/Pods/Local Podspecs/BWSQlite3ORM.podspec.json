@@ -1,0 +1,22 @@
+{
+  "name": "BWSQlite3ORM",
+  "version": "0.1.0",
+  "summary": "A short description of BWSQlite3ORM.",
+  "description": "TODO: Add long description of the pod here.",
+  "homepage": "https://github.com/Bakuf/BWSQLite3ORM",
+  "license": {
+    "type": "MIT",
+    "file": "LICENSE"
+  },
+  "authors": {
+    "Rodrigo Galvez": "bakuf3@hotmail.com"
+  },
+  "source": {
+    "git": "https://github.com/Bakuf/BWSQLite3ORM.git",
+    "tag": "0.1.0"
+  },
+  "platforms": {
+    "ios": "9.0"
+  },
+  "source_files": "BWSQlite3ORM/Classes/**/*"
+}

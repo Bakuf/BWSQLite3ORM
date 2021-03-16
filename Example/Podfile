@@ -1,0 +1,13 @@
+use_frameworks!
+
+platform :ios, '9.0'
+
+target 'BWSQlite3ORM_Example' do
+  pod 'BWSQlite3ORM', :path => '../'
+
+  target 'BWSQlite3ORM_Tests' do
+    inherit! :search_paths
+
+    
+  end
+end

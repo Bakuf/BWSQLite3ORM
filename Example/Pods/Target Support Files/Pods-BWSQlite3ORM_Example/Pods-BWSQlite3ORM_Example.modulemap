@@ -1,0 +1,6 @@
+framework module Pods_BWSQlite3ORM_Example {
+  umbrella header "Pods-BWSQlite3ORM_Example-umbrella.h"
+
+  export *
+  module * { export * }
+}

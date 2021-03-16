@@ -1,0 +1,6 @@
+framework module BWSQlite3ORM {
+  umbrella header "BWSQlite3ORM-umbrella.h"
+
+  export *
+  module * { export * }
+}

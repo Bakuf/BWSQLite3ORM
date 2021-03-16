@@ -1,40 +1,29 @@
 # BWSQlite3ORM
 
-This is just a simple object-relational mapping set of classes for SQLite3.
+[![CI Status](https://img.shields.io/travis/Rodrigo Galvez/BWSQlite3ORM.svg?style=flat)](https://travis-ci.org/Rodrigo Galvez/BWSQlite3ORM)
+[![Version](https://img.shields.io/cocoapods/v/BWSQlite3ORM.svg?style=flat)](https://cocoapods.org/pods/BWSQlite3ORM)
+[![License](https://img.shields.io/cocoapods/l/BWSQlite3ORM.svg?style=flat)](https://cocoapods.org/pods/BWSQlite3ORM)
+[![Platform](https://img.shields.io/cocoapods/p/BWSQlite3ORM.svg?style=flat)](https://cocoapods.org/pods/BWSQlite3ORM)
 
-It’s really easy to use, just make a data model and make it subclass of BWDataModel class, and a table will be created automatically, you can use the CRUD methods to manipulate the info.
+## Example
 
-You can also make queries, for now they all are Select queries, you just have to make the string assuming the next is before “SELECT * FROM (table Name)” + your query.
+To run the example project, clone the repo, and run `pod install` from the Example directory first.
 
-For now the types that can be stored are :
+## Requirements
 
-- int, float, double, bool, NSString
-- NSArray, NSMutableArray, NSDictionary, NSMutableDictionary
-- NSDate
+## Installation
 
-For now queries works only for the first ones, also NSDate if you convert it to timeIntervalSince1970 in your query.
+BWSQlite3ORM is available through [CocoaPods](https://cocoapods.org). To install
+it, simply add the following line to your Podfile:
 
-Enjoy =)
+```ruby
+pod 'BWSQlite3ORM'
+```
 
-# TODO List
+## Author
 
-- Include Transactions
-- Store other BWDataModels inside a BWDataModel
-- Store NSData
+Rodrigo Galvez, bakuf3@hotmail.com
 
-Author
-----
-Rodrigo Gálvez
+## License
 
-Version
-----
-
-1.0
-
-License
-----
-
-MIT
-
-
-**Free Software, Hell Yeah!**
+BWSQlite3ORM is available under the MIT license. See the LICENSE file for more info.
