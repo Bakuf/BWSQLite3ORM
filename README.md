@@ -1,6 +1,5 @@
 # BWSQlite3ORM
 
-[![CI Status](https://img.shields.io/travis/Rodrigo Galvez/BWSQlite3ORM.svg?style=flat)](https://travis-ci.org/Rodrigo Galvez/BWSQlite3ORM)
 [![Version](https://img.shields.io/cocoapods/v/BWSQlite3ORM.svg?style=flat)](https://cocoapods.org/pods/BWSQlite3ORM)
 [![License](https://img.shields.io/cocoapods/l/BWSQlite3ORM.svg?style=flat)](https://cocoapods.org/pods/BWSQlite3ORM)
 [![Platform](https://img.shields.io/cocoapods/p/BWSQlite3ORM.svg?style=flat)](https://cocoapods.org/pods/BWSQlite3ORM)
