@@ -35,7 +35,7 @@
 }
 
 + (void)initializeTablesWithDataModelClasses:(NSArray*)dataModelClasses{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         for (NSString *className in dataModelClasses) {
             Class c = NSClassFromString(className);
             if (class_getSuperclass(c) == [BWDataModel class] || class_getSuperclass(class_getSuperclass(c)) == [BWDataModel class]) {
@@ -109,7 +109,7 @@
 
 - (void)dropTableForDataModelClass:(Class)dataModelClass{
     NSString *query = [NSString stringWithFormat:@"drop table if exists %@",NSStringFromClass(dataModelClass)];
-    [self runQuery:query withParamValues:nil withResultsArray:nil withOperationResult:nil];
+    [self runStatement:query withParamValues:nil withResultsArray:nil withOperationResult:nil];
 }
 
 -(void)deleteDataBase{
@@ -153,9 +153,9 @@
     
     if (![self checkIfTableExists:className]) {
         NSString *query = [NSString stringWithFormat:@"drop table if exists %@",className];
-        [self runQuery:query withParamValues:nil withResultsArray:nil withOperationResult:nil];
+        [self runStatement:query withParamValues:nil withResultsArray:nil withOperationResult:nil];
         query = [NSString stringWithFormat:@"CREATE TABLE %@ (id TEXT PRIMARY KEY %@)",className,[dataModel allPropertiesSeparatedByComa]];
-        [self runQuery:query withParamValues:nil withResultsArray:nil withOperationResult:nil];
+        [self runStatement:query withParamValues:nil withResultsArray:nil withOperationResult:nil];
         if (displayLogs) NSLog(@"Table Created for Datamodel : %@",className);
         if ([dataModel absoluteRow]) {
             [self insertDefaultValuesRowForDataModel:dataModel];
@@ -221,7 +221,7 @@
 
     NSMutableArray *resultsArray = [[NSMutableArray alloc] init];
     NSString *query = [NSString stringWithFormat:@"select * from %@", NSStringFromClass(dataModelClass)];
-    NSString *error = [self runQuery:query withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
+    NSString *error = [self runStatement:query withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
     NSMutableArray *data = [[NSMutableArray alloc] init];
     for (NSDictionary *row in resultsArray) {
         id dataModel = [[dataModelClass alloc] init];
@@ -238,7 +238,7 @@
     
     NSMutableArray *resultsArray = [[NSMutableArray alloc] init];
     NSString *query = [NSString stringWithFormat:@"select * from %@ order by %@", NSStringFromClass(dataModelClass),orderedBy];
-    NSString *error = [self runQuery:query withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
+    NSString *error = [self runStatement:query withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
     NSMutableArray *data = [[NSMutableArray alloc] init];
     for (NSDictionary *row in resultsArray) {
         id dataModel = [[dataModelClass alloc] init];
@@ -255,7 +255,7 @@
     
     NSMutableArray *resultsArray = [[NSMutableArray alloc] init];
     NSString *query = [NSString stringWithFormat:@"SELECT * FROM %@ %@",NSStringFromClass(dataModelClass),theQuery];
-    NSString *error = [self runQuery:query withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
+    NSString *error = [self runStatement:query withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
     NSMutableArray *returnArray = [[NSMutableArray alloc] init];
     if (resultsArray.count != 0) {
         for (int i = 0; i < resultsArray.count; i++) {
@@ -270,7 +270,7 @@
 - (void)getRawDataFromQuery:(NSString*)theQuery makeFromClass:(Class)dataModelClass withResult:(queryResult)result{
     if (!allTablesInitialized) [self createTableWithDataModel:dataModelClass];
     NSMutableArray *resultsArray = [[NSMutableArray alloc] init];
-    NSString *error = [self runQuery:theQuery withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
+    NSString *error = [self runStatement:theQuery withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
     if (result != nil) result(error.length != 0 ? NO:YES,error,resultsArray);
 }
 
@@ -302,11 +302,30 @@
             NSLog(@"%@", [error localizedDescription]);
         }
     }
-    if (sqlite3_open([dbPath UTF8String], &database) != SQLITE_OK) {
-        NSAssert1(0, @"Error: initializeDatabase: could not open database (%s)", sqlite3_errmsg(database));
-    }else{
-        [self createFunctions:database];
+    
+    //TEST MULTITHREAD
+    if (database == NULL) {
+        sqlite3_shutdown();
+        sqlite3_config(SQLITE_CONFIG_SERIALIZED);
+        sqlite3_initialize();
+
+        NSLog(@"isThreadSafe %d", sqlite3_threadsafe());
+
+        const char *path = [dbPath UTF8String];
+        //SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_SHAREDCACHE
+        if (sqlite3_open_v2(path, &database, SQLITE_OPEN_CREATE |SQLITE_OPEN_READWRITE|SQLITE_OPEN_FULLMUTEX| SQLITE_OPEN_SHAREDCACHE, NULL) != SQLITE_OK) {
+          NSLog(@"Database opening failed!");
+        }else{
+            [self createFunctions:database];
+        }
     }
+    //
+    
+//    if (sqlite3_open([dbPath UTF8String], &database) != SQLITE_OK) {
+//        NSAssert1(0, @"Error: initializeDatabase: could not open database (%s)", sqlite3_errmsg(database));
+//    }else{
+//        [self createFunctions:database];
+//    }
 }
 
 - (void) closeDB {
@@ -314,14 +333,14 @@
     database = NULL;
 }
 
--(NSString*)runQuery:(NSString*)query withParamValues:(NSArray*)paramValues withResultsArray:(NSMutableArray*)resultsArray withOperationResult:(operationResult)opCallback{
+-(NSString*)runStatement:(NSString*)statementString withParamValues:(NSArray*)paramValues withResultsArray:(NSMutableArray*)resultsArray withOperationResult:(operationResult)opCallback{
     
     // Initialize.
     NSString *error = @"";
     
     // Load all data from database to memory.
     sqlite3_stmt *statement;
-    int prepareStatementResult = sqlite3_prepare_v2(database, [query UTF8String], -1, &statement, NULL);
+    int prepareStatementResult = sqlite3_prepare_v2(database, [statementString UTF8String], -1, &statement, NULL);
     if(prepareStatementResult == SQLITE_OK) {
         [self bindParameterValues:paramValues forStatement:statement];
         // Check if the query is non-executable.
@@ -353,9 +372,9 @@
     // Release the compiled statement from memory.
     if(sqlite3_finalize(statement) == SQLITE_OK) {
         int numChanges = sqlite3_changes(database);
-        if (numChanges > 0 && displayLogs) NSLog(@"%d Changes to databes from query %@ with params : %@",numChanges,query,paramValues);
+        if (numChanges > 0 && displayLogs) NSLog(@"%d Changes to databes from query %@ with params : %@",numChanges,statementString,paramValues);
     } else {
-        error = [error stringByAppendingFormat:@"doQuery (%@) with params (%@) : sqlite3_finalize failed (%s)", query, paramValues, sqlite3_errmsg(database)];
+        error = [error stringByAppendingFormat:@"doQuery (%@) with params (%@) : sqlite3_finalize failed (%s)", statementString, paramValues, sqlite3_errmsg(database)];
     }
     
     if (error.length != 0) {
@@ -460,7 +479,7 @@
     bool boo = NO;
     NSMutableArray *resultsArray = [[NSMutableArray alloc] init];
     NSString *query = [NSString stringWithFormat:@"pragma table_info (%@)",Table];
-    [self runQuery:query withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
+    [self runStatement:query withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
     for (int i = 0; i < resultsArray.count; i++) {
         NSDictionary *row = resultsArray[i];
         if ([row[@"name"] isEqualToString:column]) {
@@ -474,7 +493,7 @@
 - (void)addColumn:(NSString*)columnName andDefaultValue:(id)defaultValue inTable:(NSString*)table{
     NSString *query = [NSString stringWithFormat:@"ALTER TABLE %@ ADD COLUMN %@ TEXT",table,columnName];
     if ([defaultValue isKindOfClass:[NSString class]] || [defaultValue isKindOfClass:[NSNumber class]]) {
-        [self runQuery:query withParamValues:nil withResultsArray:nil withOperationResult:nil];
+        [self runStatement:query withParamValues:nil withResultsArray:nil withOperationResult:nil];
         return;
     }
     NSLog(@"addColumn on BWDB does not support the class : %@",NSStringFromClass([defaultValue class]));
@@ -484,7 +503,7 @@
     NSLog(@"All Values For Table %@",tableName);
     NSMutableArray *resultsArray = [[NSMutableArray alloc] init];
     NSString *query = [NSString stringWithFormat:@"select * from %@", tableName];
-    [self runQuery:query withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
+    [self runStatement:query withParamValues:nil withResultsArray:resultsArray withOperationResult:nil];
     for (NSDictionary *row in resultsArray) {
         NSLog(@"%@",row);
     }
@@ -504,7 +523,7 @@
                             [[record allKeys] componentsJoinedByString:@","],
                             [placeHoldersArray componentsJoinedByString:@","]];
     
-    [self runQuery:query withParamValues:[record allValues] withResultsArray:nil withOperationResult:opCallback];
+    [self runStatement:query withParamValues:[record allValues] withResultsArray:nil withOperationResult:opCallback];
 }
 
 - (NSDictionary*)checkForNulls:(NSDictionary*)record{
@@ -532,7 +551,7 @@
     NSMutableArray *params = [NSMutableArray arrayWithArray:[record allValues]];
     [params addObject:rowID];
     
-    [self runQuery:query withParamValues:params withResultsArray:nil withOperationResult:opCallback];
+    [self runStatement:query withParamValues:params withResultsArray:nil withOperationResult:opCallback];
 }
 
 - (void) insertIfNotUpdateRow:(NSDictionary *)record forTable:(NSString*)tableName withOperationResult:(operationResult)opCallback{
@@ -558,13 +577,13 @@
                             [placeHoldersArray componentsJoinedByString:@","],
                             [updateSetArray componentsJoinedByString:@","]];
     
-    [self runQuery:query withParamValues:[record allValues] withResultsArray:nil withOperationResult:opCallback];
+    [self runStatement:query withParamValues:[record allValues] withResultsArray:nil withOperationResult:opCallback];
 }
 
 - (NSDictionary *)getRow:(NSString*)rowID forTable:(NSString*)tableName {
     NSMutableArray *resultsArray = [[NSMutableArray alloc] init];
     NSString *query = [NSString stringWithFormat:@"select * from %@ where id = ?", tableName];
-    [self runQuery:query withParamValues:@[rowID] withResultsArray:resultsArray withOperationResult:nil];
+    [self runStatement:query withParamValues:@[rowID] withResultsArray:resultsArray withOperationResult:nil];
     NSDictionary *resultDictionary = [resultsArray lastObject];
     return resultDictionary;
 }
@@ -786,7 +805,7 @@
         }
     }
     NSString *query = [NSString stringWithFormat:@"delete from %@ where id = ?", NSStringFromClass([dataModel class])];
-    [self runQuery:query withParamValues:@[dataModel.BWRowId] withResultsArray:nil withOperationResult:opCallback];
+    [self runStatement:query withParamValues:@[dataModel.BWRowId] withResultsArray:nil withOperationResult:opCallback];
 }
 
 - (void)insertIfNotUpdateRowFromDataModel:(BWDataModel*)dataModel withOperationResult:(operationResult)opCallback{

@@ -29,6 +29,7 @@ typedef void (^queryResult)(BOOL success, NSString *error,NSMutableArray *result
 @property (nonatomic, strong) NSString* BWRowId;
 @property (nonatomic, strong) NSArray *mutateOnlyFields;
 @property (nonatomic, assign) BOOL createdFromSQLite;
+@property (nonatomic, assign) BOOL wasModifiedAfterFetch;
 
 //Settings Properties to override in your own class
 + (BOOL)absoluteRow;
@@ -63,7 +64,7 @@ typedef void (^queryResult)(BOOL success, NSString *error,NSMutableArray *result
 //ORM Methods
 
 //Thread where all calls are sent
-+ (void)runInBWThread:(void(^)(void))block;
++ (void)runInWriteBWThread:(void(^)(void))block;
 
 + (NSDictionary *)classPropsFor:(Class)klass;
 

@@ -10,8 +10,17 @@
 #import <objc/runtime.h>
 #import "BWDataBaseManager.h"
 
-#define databaseLock @"BWDatabase-Lock"
-#define backgroundQueue dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0ul)
+#define sqliteContextObserver @"BWDataModel-PropChangeObserver"
+
+#define databaseLockQueries @"BWDatabase-Lock-Queries"
+#define databaseLockOp @"BWDatabase-Lock-Operations"
+
+
+//TODO CHANGE QUEUES TO BE DEFINED BY USERS
+#define backgroundQueue dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0ul)
+//#define BWQueue dispatch_queue_create_with_target("bw.sqlite3.ORM", DISPATCH_QUEUE_CONCURRENT,backgroundQueue)
+#define BWQueueQuery dispatch_queue_create_with_target("bw.sqlite3.ORM.Queries", DISPATCH_QUEUE_SERIAL,backgroundQueue)
+#define BWQueueOp dispatch_queue_create_with_target("bw.sqlite3.ORM.Operation", DISPATCH_QUEUE_CONCURRENT,backgroundQueue)
 
 @interface BWDataModel (){
     NSDictionary* parsedDict;
@@ -317,7 +326,9 @@ static const char *getPropertyType(objc_property_t property) {
     }
     
     self.createdFromSQLite = YES;
+    self.wasModifiedAfterFetch = NO;
     [self modelValuesWereSetFromSQLite:dict];
+    [self subscribeToMyChanges];
     
     return self;
 }
@@ -399,6 +410,22 @@ static const char *getPropertyType(objc_property_t property) {
     return [NSString stringWithFormat:@"\n********%@********\n%@**********************\n"
             ,NSStringFromClass([self class])
             ,description];
+}
+
+#pragma mark Observer Methods
+
+- (void)subscribeToMyChanges{
+    NSDictionary *propInfo = [self BWCustomParsingPropertiesInfo];
+    for (NSString* key in propInfo.allKeys) {
+        [self addObserver:self forKeyPath:key options:NSKeyValueObservingOptionNew context:sqliteContextObserver];
+    }
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
+{
+    if (object == self && context == sqliteContextObserver ) {
+        self.wasModifiedAfterFetch = YES;
+    }
 }
 
 #pragma mark Settings Methods
@@ -498,25 +525,25 @@ static const char *getPropertyType(objc_property_t property) {
 }
 
 + (void)getAllRowsWithResult:(queryResult)result{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInReadBWThread:^{
         [[BWDataBaseManager sharedInstance] getAllRowsForDataModel:[self class] WithResult:[BWDataModel encapsulateQuery:result]];
     }];
 }
 
 + (void)getAllRowsOrderedBy:(NSString*)orderedBy withResult:(queryResult)result{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInReadBWThread:^{
         [[BWDataBaseManager sharedInstance] getAllRowsForDataModel:[self class] orderedBy:orderedBy WithResult:[BWDataModel encapsulateQuery:result]];
     }];
 }
 
 + (void)makeSelectQuery:(NSString*)query withResult:(queryResult)result{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInReadBWThread:^{
         [[BWDataBaseManager sharedInstance] getRowsFromQuery:query forDataModel:[self class] WithResult:[BWDataModel encapsulateQuery:result]];
     }];
 }
 
 + (void)rawQuery:(NSString*)query withResult:(queryResult)result{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         [[BWDataBaseManager sharedInstance] getRawDataFromQuery:query makeFromClass:[self class] withResult:[BWDataModel encapsulateQuery:result]];
     }];
 }
@@ -535,7 +562,7 @@ static const char *getPropertyType(objc_property_t property) {
     [otherDataModel updateRow];
 }
 
-+ (void)runInBWThread:(void(^)(void))block{
++ (void)runInWriteBWThread:(void(^)(void))block{
     //Main thread
 //    if ([NSThread isMainThread]) {
 //        block();
@@ -545,24 +572,58 @@ static const char *getPropertyType(objc_property_t property) {
 //    }
     
     //Background thread
-    dispatch_async(backgroundQueue, ^{
-        @synchronized (databaseLock) {
+    dispatch_async(BWQueueOp, ^{
+        //@synchronized (databaseLockOp) {
             block();
-        };
+        //};
     });
+    
+}
+
++ (void)runInReadBWThread:(void(^)(void))block{
+    //Main thread
+//    if ([NSThread isMainThread]) {
+//        block();
+//    } else {
+//    //dispatch_async(backgroundQueue, block);
+//        dispatch_async(dispatch_get_main_queue(), block);
+//    }
+    
+    //Background thread
+    dispatch_async(BWQueueQuery, ^{
+        //@synchronized (databaseLockQueries) {
+            block();
+        //};
+    });
+    
+}
+
++ (NSString *)getPrettyCurrentThreadDescription {
+    NSString *raw = [NSString stringWithFormat:@"%@", [NSThread currentThread]];
+
+    NSArray *firstSplit = [raw componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"{"]];
+    if ([firstSplit count] > 1) {
+        NSArray *secondSplit     = [firstSplit[1] componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"}"]];
+        if ([secondSplit count] > 0) {
+            NSString *numberAndName = secondSplit[0];
+            return numberAndName;
+        }
+    }
+
+    return raw;
 }
 
 + (operationResult)encapsulateOperation:(operationResult)result{
-    if (result) {
-        if ([NSThread isMainThread]) {
-            return result;
-        }else{
-            return ^(BOOL success, NSString *error){
+    if (result != nil) {
+        return ^(BOOL success, NSString *error){
+            if ([NSThread isMainThread]) {
+                result(success, error);
+            }else{
                 dispatch_async(dispatch_get_main_queue(), ^{
                     result (success, error);
                 });
-            };
-        }
+            }
+        };
     }else{
         return result;
     }
@@ -578,9 +639,6 @@ static const char *getPropertyType(objc_property_t property) {
                     result (success, error, results);
                 });
             }
-//            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-//                result (success, error, results);
-//            });
         };
     }else{
         return result;
@@ -588,49 +646,49 @@ static const char *getPropertyType(objc_property_t property) {
 }
 
 - (void)insertRow{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         [[BWDataBaseManager sharedInstance] insertRowFromDataModel:self withOperationResult:nil];
     }];
 }
 
 - (void)updateRow{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         [[BWDataBaseManager sharedInstance] updateRowFromDataModel:self withOperationResult:nil];
     }];
 }
 
 - (void)deleteRow{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         [[BWDataBaseManager sharedInstance] deleteRowFromDataModel:self withOperationResult:nil];
     }];
 }
 
 - (void)insertIfNotUpdateRow{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         [[BWDataBaseManager sharedInstance] insertIfNotUpdateRowFromDataModel:self withOperationResult:nil];
     }];
 }
 
 + (void)deleteTable{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         [[BWDataBaseManager sharedInstance] dropTableForDataModelClass:[self class]];
     }];
 }
 
 + (void)deleteDatabase{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         [[BWDataBaseManager sharedInstance] deleteDataBase];
     }];
 }
 
 - (void)performSqliteOperationWithType:(sqliteOperation)operation withResult:(operationResult)result{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         [[BWDataBaseManager sharedInstance] performSqliteOperationWithType:operation forDataModel:self withResult:[BWDataModel encapsulateOperation:result]];
     }];
 }
 
 - (void)performSqliteOperationWithType:(sqliteOperation)operation recursive:(BOOL)recursive withResult:(operationResult)result{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         [[BWDataBaseManager sharedInstance] performSqliteOperationWithType:operation forDataModel:self recursive:recursive isRootObject:YES withResult:[BWDataModel encapsulateOperation:result]];
     }];
 }
@@ -645,13 +703,13 @@ static const char *getPropertyType(objc_property_t property) {
 //}
 
 + (void)performTransactionSqliteOperationWithType:(sqliteOperation)operation forDataModels:(NSMutableArray*)dataModels withResult:(operationResult)result{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         [[BWDataBaseManager sharedInstance] performTransactionSqliteOperationWithType:operation forDataModels:dataModels withResult:[BWDataModel encapsulateOperation:result]];
     }];
 }
 
 + (void)performTransactionSqliteOperationWithType:(sqliteOperation)operation forDataModels:(NSMutableArray*)dataModels recursive:(BOOL)recursive withResult:(operationResult)result{
-    [BWDataModel runInBWThread:^{
+    [BWDataModel runInWriteBWThread:^{
         [[BWDataBaseManager sharedInstance] performTransactionSqliteOperationWithType:operation forDataModels:dataModels recursive:recursive    withResult:[BWDataModel encapsulateOperation:result]];
     }];
 }
