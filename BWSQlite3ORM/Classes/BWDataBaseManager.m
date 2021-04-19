@@ -20,8 +20,9 @@
     
     BOOL allTablesInitialized;
     NSMutableArray *classesAlreadyInitialized;
-    BOOL displayLogs;
 }
+
+@property (nonatomic, strong) NSMutableDictionary *queues;
 
 @end
 
@@ -35,11 +36,11 @@
 }
 
 + (void)initializeTablesWithDataModelClasses:(NSArray*)dataModelClasses{
-    [BWDataModel runInWriteBWThread:^{
+    [BWDataModel runInBWCustomQueue:BWOperationsIdentifier withSyncType:BWSyncTypeAsync completion:^{
         for (NSString *className in dataModelClasses) {
             Class c = NSClassFromString(className);
             if (class_getSuperclass(c) == [BWDataModel class] || class_getSuperclass(class_getSuperclass(c)) == [BWDataModel class]) {
-                NSLog(@"%s is subclass of BWDataModel",class_getName(c));
+                if ([BWDataBaseManager sharedInstance].displayLogs) NSLog(@"%s is subclass of BWDataModel",class_getName(c));
                 [[BWDataBaseManager sharedInstance] createTableWithDataModel:c];
             }
         }
@@ -61,6 +62,7 @@
     if (self) {
         // Custom initialization
         //Init Database and create tables if necesary
+        [self createDefaultQueues];
         [self startDB];
     }
     return self;
@@ -72,10 +74,16 @@
     allTablesInitialized = NO;
 }
 
+- (void)createDefaultQueues{
+    self.queues = [[NSMutableDictionary alloc] init];
+    [self registerCustomQueueWithQualityOfService:BWQueueQOSDefault andType:BWQueueTypeConcurrent withIdentifier:BWQueriesIdentifier];
+    [self registerCustomQueueWithQualityOfService:BWQueueQOSDefault andType:BWQueueTypeConcurrent withIdentifier:BWOperationsIdentifier];
+}
+
 - (void)startDB{
     classesAlreadyInitialized = [[NSMutableArray alloc] init];
     allTablesInitialized = NO;
-    displayLogs = NO;
+    self.displayLogs = NO;
     [self openDB];
 }
 
@@ -156,7 +164,7 @@
         [self runStatement:query withParamValues:nil withResultsArray:nil withOperationResult:nil];
         query = [NSString stringWithFormat:@"CREATE TABLE %@ (id TEXT PRIMARY KEY %@)",className,[dataModel allPropertiesSeparatedByComa]];
         [self runStatement:query withParamValues:nil withResultsArray:nil withOperationResult:nil];
-        if (displayLogs) NSLog(@"Table Created for Datamodel : %@",className);
+        if (self.displayLogs) NSLog(@"Table Created for Datamodel : %@",className);
         if ([dataModel absoluteRow]) {
             [self insertDefaultValuesRowForDataModel:dataModel];
         }
@@ -263,7 +271,7 @@
             [returnArray addObject:[dataModel setDataModelValuesFromDictionary:resultsArray[i]]];
         }
     }
-    if (displayLogs) NSLog(@"Results from query : %@ \n%@",query,resultsArray);
+    if (self.displayLogs) NSLog(@"Results from query : %@ \n%@",query,resultsArray);
     if (result != nil) result(error.length != 0 ? NO:YES,error,returnArray);
 }
 
@@ -372,7 +380,7 @@
     // Release the compiled statement from memory.
     if(sqlite3_finalize(statement) == SQLITE_OK) {
         int numChanges = sqlite3_changes(database);
-        if (numChanges > 0 && displayLogs) NSLog(@"%d Changes to databes from query %@ with params : %@",numChanges,statementString,paramValues);
+        if (numChanges > 0 && self.displayLogs) NSLog(@"%d Changes to databes from query %@ with params : %@",numChanges,statementString,paramValues);
     } else {
         error = [error stringByAppendingFormat:@"doQuery (%@) with params (%@) : sqlite3_finalize failed (%s)", statementString, paramValues, sqlite3_errmsg(database)];
     }
@@ -615,7 +623,7 @@
     
     // Release the compiled statement from memory.
     if(sqlite3_finalize(statement) == SQLITE_OK) {
-        if (displayLogs) NSLog(@"%@ Changes to database from query %@",[NSNumber numberWithInt: sqlite3_changes(database)],query);
+        if (self.displayLogs) NSLog(@"%@ Changes to database from query %@",[NSNumber numberWithInt: sqlite3_changes(database)],query);
     } else {
         NSLog(@"doQuery (%@) : sqlite3_finalize failed (%s)", query, sqlite3_errmsg(database));
     }
@@ -811,6 +819,43 @@
 - (void)insertIfNotUpdateRowFromDataModel:(BWDataModel*)dataModel withOperationResult:(operationResult)opCallback{
     if (!allTablesInitialized) [self createTableWithDataModel:[dataModel class]];
     [self insertIfNotUpdateRow:[self getMutateOnlyFieldsDictionaryFromDataModel:dataModel] forTable:NSStringFromClass([dataModel class]) withOperationResult:opCallback];
+}
+
+#pragma mark - Queue Methods
+
+- (void)registerCustomQueueWithQualityOfService:(BWQueueQOS)qos andType:(BWQueueType)type withIdentifier:(NSString* _Nonnull)identifier{
+    intptr_t quality = DISPATCH_QUEUE_PRIORITY_DEFAULT;
+    switch (qos) {
+        case BWQueueQOSLow:
+            quality = DISPATCH_QUEUE_PRIORITY_LOW;
+            break;
+        case BWQueueQOSHigh:
+            quality = DISPATCH_QUEUE_PRIORITY_HIGH;
+            break;
+        case BWQueueQOSBackground:
+            quality = DISPATCH_QUEUE_PRIORITY_BACKGROUND;
+            break;
+        default:
+            break;
+    }
+    dispatch_queue_t queueType = dispatch_get_global_queue(quality, 0);
+    
+    dispatch_queue_attr_t qType = DISPATCH_QUEUE_SERIAL;
+    switch (type) {
+        case BWQueueTypeConcurrent:
+            qType = DISPATCH_QUEUE_CONCURRENT;
+            break;
+        default:
+            break;
+    }
+    
+    NSString *fullIdentifier = [NSString stringWithFormat:@"bw.sqlite3.ORM.%@",identifier];
+    dispatch_queue_t newQueue = dispatch_queue_create_with_target([fullIdentifier UTF8String], qType,queueType);
+    [self.queues setObject:newQueue forKey:identifier];
+}
+
+- (dispatch_queue_t)getQueueWithIdentifier:(NSString*)identifier{
+    return [self.queues valueForKey:identifier];
 }
 
 #pragma mark - Custom Functions

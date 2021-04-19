@@ -17,10 +17,11 @@
 
 
 //TODO CHANGE QUEUES TO BE DEFINED BY USERS
-#define backgroundQueue dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0ul)
+//#define defaultQueue dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul)
+//#define backgroundQueue dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0ul)
 //#define BWQueue dispatch_queue_create_with_target("bw.sqlite3.ORM", DISPATCH_QUEUE_CONCURRENT,backgroundQueue)
-#define BWQueueQuery dispatch_queue_create_with_target("bw.sqlite3.ORM.Queries", DISPATCH_QUEUE_SERIAL,backgroundQueue)
-#define BWQueueOp dispatch_queue_create_with_target("bw.sqlite3.ORM.Operation", DISPATCH_QUEUE_CONCURRENT,backgroundQueue)
+//#define BWQueueQuery dispatch_queue_create_with_target("bw.sqlite3.ORM.Queries", DISPATCH_QUEUE_SERIAL,defaultQueue)
+//#define BWQueueOp dispatch_queue_create_with_target("bw.sqlite3.ORM.Operation", DISPATCH_QUEUE_CONCURRENT,defaultQueue)
 
 @interface BWDataModel (){
     NSDictionary* parsedDict;
@@ -530,8 +531,20 @@ static const char *getPropertyType(objc_property_t property) {
     }];
 }
 
++ (void)getAllRowsWithResult:(queryResult)result onCustomQueue:(NSString*)identifier withQueueSyncType:(BWSyncType)syncType{
+    [BWDataModel runInBWCustomQueue:identifier withSyncType:syncType completion:^{
+        [[BWDataBaseManager sharedInstance] getAllRowsForDataModel:[self class] WithResult:[BWDataModel encapsulateQuery:result]];
+    }];
+}
+
 + (void)getAllRowsOrderedBy:(NSString*)orderedBy withResult:(queryResult)result{
     [BWDataModel runInReadBWThread:^{
+        [[BWDataBaseManager sharedInstance] getAllRowsForDataModel:[self class] orderedBy:orderedBy WithResult:[BWDataModel encapsulateQuery:result]];
+    }];
+}
+
++ (void)getAllRowsOrderedBy:(NSString*)orderedBy withResult:(queryResult)result onCustomQueue:(NSString*)identifier withQueueSyncType:(BWSyncType)syncType{
+    [BWDataModel runInBWCustomQueue:identifier withSyncType:syncType completion:^{
         [[BWDataBaseManager sharedInstance] getAllRowsForDataModel:[self class] orderedBy:orderedBy WithResult:[BWDataModel encapsulateQuery:result]];
     }];
 }
@@ -542,8 +555,20 @@ static const char *getPropertyType(objc_property_t property) {
     }];
 }
 
++ (void)makeSelectQuery:(NSString*)query withResult:(queryResult)result onCustomQueue:(NSString*)identifier withQueueSyncType:(BWSyncType)syncType{
+    [BWDataModel runInBWCustomQueue:identifier withSyncType:syncType completion:^{
+        [[BWDataBaseManager sharedInstance] getRowsFromQuery:query forDataModel:[self class] WithResult:[BWDataModel encapsulateQuery:result]];
+    }];
+}
+
 + (void)rawQuery:(NSString*)query withResult:(queryResult)result{
     [BWDataModel runInWriteBWThread:^{
+        [[BWDataBaseManager sharedInstance] getRawDataFromQuery:query makeFromClass:[self class] withResult:[BWDataModel encapsulateQuery:result]];
+    }];
+}
+
++ (void)rawQuery:(NSString*)query withResult:(queryResult)result onCustomQueue:(NSString*)identifier withQueueSyncType:(BWSyncType)syncType{
+    [BWDataModel runInBWCustomQueue:identifier withSyncType:syncType completion:^{
         [[BWDataBaseManager sharedInstance] getRawDataFromQuery:query makeFromClass:[self class] withResult:[BWDataModel encapsulateQuery:result]];
     }];
 }
@@ -563,39 +588,46 @@ static const char *getPropertyType(objc_property_t property) {
 }
 
 + (void)runInWriteBWThread:(void(^)(void))block{
-    //Main thread
-//    if ([NSThread isMainThread]) {
-//        block();
-//    } else {
-//    //dispatch_async(backgroundQueue, block);
-//        dispatch_async(dispatch_get_main_queue(), block);
-//    }
-    
-    //Background thread
-    dispatch_async(BWQueueOp, ^{
-        //@synchronized (databaseLockOp) {
-            block();
-        //};
-    });
-    
+    [BWDataModel runInBWCustomQueue:BWOperationsIdentifier withSyncType:BWSyncTypeAsync completion:block];
 }
 
 + (void)runInReadBWThread:(void(^)(void))block{
-    //Main thread
-//    if ([NSThread isMainThread]) {
-//        block();
-//    } else {
-//    //dispatch_async(backgroundQueue, block);
-//        dispatch_async(dispatch_get_main_queue(), block);
-//    }
+    [BWDataModel runInBWCustomQueue:BWQueriesIdentifier withSyncType:BWSyncTypeAsync completion:block];
+}
+
++ (void)runInBWCustomQueue:(NSString*)identifier withSyncType:(BWSyncType)type completion:(void(^)(void))block{
+    
+    if (type == BWSyncTypeMainSync || type == BWSyncTypeMainAsync) {
+        //Main thread
+        if ([NSThread isMainThread]) {
+            block();
+        } else {
+            if (type == BWSyncTypeMainSync) {
+                dispatch_sync(dispatch_get_main_queue(), block);
+            }else{
+                dispatch_async(dispatch_get_main_queue(), block);
+            }
+        }
+        return;
+    }
     
     //Background thread
-    dispatch_async(BWQueueQuery, ^{
-        //@synchronized (databaseLockQueries) {
-            block();
-        //};
-    });
+    dispatch_queue_t customQueue = [[BWDataBaseManager sharedInstance] getQueueWithIdentifier:identifier];
+    if (customQueue == nil) {
+        NSLog(@"BWDataModel - runInBWThreadOnCustomQueue : Could not find queue with name %@, will use defatul queue\nTo use custom queue you need to register them first with the method [[BWDataBaseManager SharedInstance] registerCustomQueueWithQualityOfService:(BWQueueQOS)qos andType:(BWQueueType)type withIdentifier:(NSString* _Nonnull)idetifier]",identifier);
+        customQueue = [[BWDataBaseManager sharedInstance] getQueueWithIdentifier:BWOperationsIdentifier];
+    }
     
+    
+    if (type == BWSyncTypeSync) {
+        dispatch_sync(customQueue, ^{
+            block();
+        });
+    }else{
+        dispatch_async(customQueue, ^{
+            block();
+        });
+    }
 }
 
 + (NSString *)getPrettyCurrentThreadDescription {
@@ -693,6 +725,12 @@ static const char *getPropertyType(objc_property_t property) {
     }];
 }
 
+- (void)performSqliteOperationWithType:(sqliteOperation)operation recursive:(BOOL)recursive withResult:(operationResult)result onCustomQueue:(NSString*)identifier withQueueSyncType:(BWSyncType)syncType{
+    [BWDataModel runInBWCustomQueue:identifier withSyncType:syncType completion:^{
+        [[BWDataBaseManager sharedInstance] performSqliteOperationWithType:operation forDataModel:self recursive:recursive isRootObject:YES withResult:[BWDataModel encapsulateOperation:result]];
+    }];
+}
+
 //- (void)performSqliteOperationWithType:(sqliteOperation)operation withResult:(operationResult)result recursive:(BOOL)recursive{
 //    [BWDataModel runInBWThread:^{
 //        [[BWDataBaseManager sharedInstance] performSqliteOperationWithType:operation forDataModel:self withResult:[BWDataModel encapsulateOperation:result]];
@@ -710,6 +748,12 @@ static const char *getPropertyType(objc_property_t property) {
 
 + (void)performTransactionSqliteOperationWithType:(sqliteOperation)operation forDataModels:(NSMutableArray*)dataModels recursive:(BOOL)recursive withResult:(operationResult)result{
     [BWDataModel runInWriteBWThread:^{
+        [[BWDataBaseManager sharedInstance] performTransactionSqliteOperationWithType:operation forDataModels:dataModels recursive:recursive    withResult:[BWDataModel encapsulateOperation:result]];
+    }];
+}
+
++ (void)performTransactionSqliteOperationWithType:(sqliteOperation)operation forDataModels:(NSMutableArray*)dataModels recursive:(BOOL)recursive withResult:(operationResult)result onCustomQueue:(NSString*)identifier withQueueSyncType:(BWSyncType)syncType{
+    [BWDataModel runInBWCustomQueue:identifier withSyncType:syncType completion:^{
         [[BWDataBaseManager sharedInstance] performTransactionSqliteOperationWithType:operation forDataModels:dataModels recursive:recursive    withResult:[BWDataModel encapsulateOperation:result]];
     }];
 }

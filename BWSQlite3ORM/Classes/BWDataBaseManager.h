@@ -9,7 +9,24 @@
 #import <Foundation/Foundation.h>
 #import "BWDataModel.h"
 
+#define BWQueriesIdentifier @"Queries_Thread"
+#define BWOperationsIdentifier @"Operations_Thread"
+
+typedef NS_ENUM(NSInteger,BWQueueQOS) {
+    BWQueueQOSDefault,
+    BWQueueQOSHigh,
+    BWQueueQOSLow,
+    BWQueueQOSBackground
+};
+
+typedef NS_ENUM(NSInteger,BWQueueType) {
+    BWQueueTypeSerial,
+    BWQueueTypeConcurrent
+};
+
 @interface BWDataBaseManager : NSObject
+
+@property (nonatomic, assign) BOOL displayLogs;
 
 + (instancetype)sharedInstance;
 
@@ -20,6 +37,9 @@
 - (BOOL)isTableAlreadyInitialized:(NSString*)tableName;
 - (void)dropTableForDataModelClass:(Class)dataModelClass;
 - (void)deleteDataBase;
+
+- (dispatch_queue_t)getQueueWithIdentifier:(NSString*)identifier;
+- (void)registerCustomQueueWithQualityOfService:(BWQueueQOS)qos andType:(BWQueueType)type withIdentifier:(NSString* _Nonnull)idetifier;
 
 //Insert,Get,Update Row Methods
 - (void)performSqliteOperationWithType:(sqliteOperation)operation forDataModel:(BWDataModel*)dataModel withResult:(operationResult)result;
