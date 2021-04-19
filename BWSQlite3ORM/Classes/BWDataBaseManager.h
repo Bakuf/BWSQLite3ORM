@@ -39,7 +39,7 @@ typedef NS_ENUM(NSInteger,BWQueueType) {
 - (void)deleteDataBase;
 
 - (dispatch_queue_t)getQueueWithIdentifier:(NSString*)identifier;
-- (void)registerCustomQueueWithQualityOfService:(BWQueueQOS)qos andType:(BWQueueType)type withIdentifier:(NSString* _Nonnull)idetifier;
+- (void)registerCustomQueueWithQualityOfService:(BWQueueQOS)qos andType:(BWQueueType)type withIdentifier:(NSString*)idetifier;
 
 //Insert,Get,Update Row Methods
 - (void)performSqliteOperationWithType:(sqliteOperation)operation forDataModel:(BWDataModel*)dataModel withResult:(operationResult)result;

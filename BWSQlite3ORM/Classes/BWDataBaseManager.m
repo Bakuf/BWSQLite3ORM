@@ -823,7 +823,7 @@
 
 #pragma mark - Queue Methods
 
-- (void)registerCustomQueueWithQualityOfService:(BWQueueQOS)qos andType:(BWQueueType)type withIdentifier:(NSString* _Nonnull)identifier{
+- (void)registerCustomQueueWithQualityOfService:(BWQueueQOS)qos andType:(BWQueueType)type withIdentifier:(NSString*)identifier{
     intptr_t quality = DISPATCH_QUEUE_PRIORITY_DEFAULT;
     switch (qos) {
         case BWQueueQOSLow:
