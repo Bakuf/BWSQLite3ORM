@@ -1,5 +1,5 @@
 PODS:
-  - BWSQlite3ORM (0.2.0)
+  - BWSQlite3ORM (0.3.1)
 
 DEPENDENCIES:
   - BWSQlite3ORM (from `../`)
@@ -9,7 +9,7 @@ EXTERNAL SOURCES:
     :path: "../"
 
 SPEC CHECKSUMS:
-  BWSQlite3ORM: eeaa535cff3179672ff3835dc7e2c5aa265df4fb
+  BWSQlite3ORM: f2c505a8c4b1a8a3f407df63eb524417b685a4ff
 
 PODFILE CHECKSUM: 4a303cdb86c95c32945c8154359f3537c3a5eb32
 
