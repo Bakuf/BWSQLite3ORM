@@ -664,7 +664,8 @@
                 NSArray *objects = [dataModel valueForKey:key];
                 if (objects != nil && ![objects.class isKindOfClass:[NSNull class]] && objects.count != 0) {
                     if ([objects[0] isKindOfClass:[BWDataModel class]]) {
-                        for (BWDataModel *model in objects) {
+                        for (int x = 0;x < objects.count; x++) {
+                            BWDataModel *model = (BWDataModel*)objects[0];
                             [self performSqliteOperationWithType:operation forDataModel:model recursive:recursive isRootObject:NO withResult:nil];
                         }
                     }
