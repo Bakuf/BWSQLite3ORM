@@ -665,7 +665,7 @@
                 if (objects != nil && ![objects.class isKindOfClass:[NSNull class]] && objects.count != 0) {
                     if ([objects[0] isKindOfClass:[BWDataModel class]]) {
                         for (int x = 0;x < objects.count; x++) {
-                            BWDataModel *model = (BWDataModel*)objects[0];
+                            BWDataModel *model = (BWDataModel*)objects[x];
                             [self performSqliteOperationWithType:operation forDataModel:model recursive:recursive isRootObject:NO withResult:nil];
                         }
                     }
