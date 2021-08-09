@@ -350,6 +350,10 @@ static const char *getPropertyType(objc_property_t property) {
             }
         }
     }
+    NSString *propId = [NSString stringWithFormat:@"%@Id",property];
+    if (propsAndTypes[propId]) {
+        return propId;
+    }
     return nil;
 }
 
@@ -715,7 +719,7 @@ static const char *getPropertyType(objc_property_t property) {
 
 - (void)performSqliteOperationWithType:(sqliteOperation)operation withResult:(operationResult)result{
     [BWDataModel runInWriteBWThread:^{
-        [[BWDataBaseManager sharedInstance] performSqliteOperationWithType:operation forDataModel:self withResult:[BWDataModel encapsulateOperation:result]];
+        [[BWDataBaseManager sharedInstance] performSqliteOperationWithType:operation forDataModel:self recursive:NO isRootObject:YES withResult:[BWDataModel encapsulateOperation:result]];
     }];
 }
 
@@ -742,13 +746,13 @@ static const char *getPropertyType(objc_property_t property) {
 
 + (void)performTransactionSqliteOperationWithType:(sqliteOperation)operation forDataModels:(NSMutableArray*)dataModels withResult:(operationResult)result{
     [BWDataModel runInWriteBWThread:^{
-        [[BWDataBaseManager sharedInstance] performTransactionSqliteOperationWithType:operation forDataModels:dataModels withResult:[BWDataModel encapsulateOperation:result]];
+        [[BWDataBaseManager sharedInstance] performTransactionSqliteOperationWithType:operation forDataModels:dataModels recursive:NO withResult:[BWDataModel encapsulateOperation:result]];
     }];
 }
 
 + (void)performTransactionSqliteOperationWithType:(sqliteOperation)operation forDataModels:(NSMutableArray*)dataModels recursive:(BOOL)recursive withResult:(operationResult)result{
     [BWDataModel runInWriteBWThread:^{
-        [[BWDataBaseManager sharedInstance] performTransactionSqliteOperationWithType:operation forDataModels:dataModels recursive:recursive    withResult:[BWDataModel encapsulateOperation:result]];
+        [[BWDataBaseManager sharedInstance] performTransactionSqliteOperationWithType:operation forDataModels:dataModels recursive:recursive withResult:[BWDataModel encapsulateOperation:result]];
     }];
 }
 

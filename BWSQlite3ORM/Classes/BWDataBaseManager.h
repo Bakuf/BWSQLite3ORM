@@ -42,9 +42,7 @@ typedef NS_ENUM(NSInteger,BWQueueType) {
 - (void)registerCustomQueueWithQualityOfService:(BWQueueQOS)qos andType:(BWQueueType)type withIdentifier:(NSString*)idetifier;
 
 //Insert,Get,Update Row Methods
-- (void)performSqliteOperationWithType:(sqliteOperation)operation forDataModel:(BWDataModel*)dataModel withResult:(operationResult)result;
 - (void)performSqliteOperationWithType:(sqliteOperation)operation forDataModel:(BWDataModel *)dataModel recursive:(BOOL)recursive isRootObject:(BOOL)isRoot withResult:(operationResult)result;
-- (void)performTransactionSqliteOperationWithType:(sqliteOperation)operation forDataModels:(NSMutableArray*)dataModels withResult:(operationResult)result;
 - (void)performTransactionSqliteOperationWithType:(sqliteOperation)operation forDataModels:(NSMutableArray*)dataModels recursive:(BOOL)recursive withResult:(operationResult)result;
 
 //Inserts row into table with the given data model

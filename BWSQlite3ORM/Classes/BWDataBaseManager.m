@@ -662,11 +662,13 @@
             NSString *type = propsAndTypes[key];
             if ([type isEqualToString:@"NSArray"] || [type isEqualToString:@"NSMutableArray"]) {
                 NSArray *objects = [dataModel valueForKey:key];
-                if (objects != nil && ![objects.class isKindOfClass:[NSNull class]] && objects.count != 0) {
-                    if ([objects[0] isKindOfClass:[BWDataModel class]]) {
-                        for (int x = 0;x < objects.count; x++) {
-                            BWDataModel *model = (BWDataModel*)objects[x];
-                            [self performSqliteOperationWithType:operation forDataModel:model recursive:recursive isRootObject:NO withResult:nil];
+                if (objects != nil && [dataModel valueForKey:key] != [NSNull null]) {
+                    if (objects.count != 0) {
+                        if ([objects[0] isKindOfClass:[BWDataModel class]]) {
+                            for (int x = 0;x < objects.count; x++) {
+                                BWDataModel *model = (BWDataModel*)objects[x];
+                                [self performSqliteOperationWithType:operation forDataModel:model recursive:recursive isRootObject:NO withResult:nil];
+                            }
                         }
                     }
                 }
@@ -693,8 +695,7 @@
     }
 }
 
-- (void)performTransactionSqliteOperationWithType:(sqliteOperation)operation forDataModels:(NSMutableArray*)dataModels withResult:(operationResult)result{
-    
+- (void)performTransactionSqliteOperationWithType:(sqliteOperation)operation forDataModels:(NSMutableArray*)dataModels recursive:(BOOL)recursive withResult:(operationResult)result{
     NSMutableArray *filteredModels = [[NSMutableArray alloc] init];
     for (int x = 0; x < dataModels.count; x++) {
         if ([self checkClassForBWDataModel:[dataModels[x] class]]) {
@@ -705,47 +706,20 @@
     }
     
     sqlite3_exec(database, "BEGIN TRANSACTION", NULL, NULL, NULL);
+    __block NSString *errors = nil;
     for (BWDataModel *model in filteredModels) {
-        switch (operation) {
-            case sqliteOperationCreate:
-                [self insertRowFromDataModel:model withOperationResult:result];
-                break;
-            case sqliteOperationDelete:
-                [self deleteRowFromDataModel:model withOperationResult:result];
-                break;
-            case sqliteOperationInsertIfNotUpdate:
-                [self insertIfNotUpdateRowFromDataModel:model withOperationResult:result];
-                break;
-            case sqliteOperationUpdate:
-            default:
-                [self updateRowFromDataModel:model withOperationResult:result];
-                break;
-        }
-    }
-    sqlite3_exec(database, "END TRANSACTION", NULL, NULL, NULL);
-}
-
-- (void)performTransactionSqliteOperationWithType:(sqliteOperation)operation forDataModels:(NSMutableArray*)dataModels recursive:(BOOL)recursive withResult:(operationResult)result{
-    
-    if (recursive) {
-        NSMutableArray *filteredModels = [[NSMutableArray alloc] init];
-        for (int x = 0; x < dataModels.count; x++) {
-            if ([self checkClassForBWDataModel:[dataModels[x] class]]) {
-                [filteredModels addObject:dataModels[x]];
-            }else{
-                NSLog(@"Filtered class %@ from transaction because it's not a BWDataModel Subclass", NSStringFromClass([dataModels[x] class]));
+        [self performSqliteOperationWithType:operation forDataModel:model recursive:recursive isRootObject:NO withResult:^(BOOL success, NSString *error) {
+            if (!success) {
+                if (errors == nil) {
+                    errors = error;
+                }else{
+                    errors = [NSString stringWithFormat:@"%@,%@",errors,error];
+                }
             }
-        }
-        
-        sqlite3_exec(database, "BEGIN TRANSACTION", NULL, NULL, NULL);
-        for (BWDataModel *model in filteredModels) {
-            [self performSqliteOperationWithType:operation forDataModel:model recursive:true isRootObject:NO withResult:result];
-        }
-        sqlite3_exec(database, "END TRANSACTION", NULL, NULL, NULL);
-    }else{
-        [self performTransactionSqliteOperationWithType:operation forDataModels:dataModels withResult:result];
+        }];
     }
-    
+    if (result != nil) result(errors == nil ? YES : NO,errors);
+    sqlite3_exec(database, "END TRANSACTION", NULL, NULL, NULL);
 }
 
 - (NSDictionary*)getMutateOnlyFieldsDictionaryFromDataModel:(BWDataModel*)dataModel{
