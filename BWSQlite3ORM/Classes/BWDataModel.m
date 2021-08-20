@@ -242,7 +242,13 @@ static const char *getPropertyType(objc_property_t property) {
         }
         
         if ([type isEqualToString:@"NSArray"] || [type isEqualToString:@"NSMutableArray"] || [type isEqualToString:@"NSDictionary"] || [type isEqualToString:@"NSMutableDictionary"]) {
-//            [self setValue:[self getObjectFromJSON:dict[key]] forKey:key];
+            NSLog(@"%@",dict[key]);
+            if ([dict[key] isKindOfClass:[NSString class]]) {
+                NSString *string = (NSString*)dict[key];
+                if (string.length > 0) {
+                    [self setValue:[self getObjectFromJSON:dict[key]] forKey:key];
+                }
+            }
         }
         
         if ([type isEqualToString:@"i"] || [type isEqualToString:@"l"] || [type isEqualToString:@"q"]) {
@@ -380,13 +386,13 @@ static const char *getPropertyType(objc_property_t property) {
     }
     
     if ([type isEqualToString:@"NSArray"] || [type isEqualToString:@"NSMutableArray"] || [type isEqualToString:@"NSDictionary"] || [type isEqualToString:@"NSMutableDictionary"]) {
-//        id value = [self valueForKey:key];
-//        if (value != nil) {
-//            return [self serializeArrayOrDictionary:value];
-//        }else{
-//            value = @"";
-//        }
-        
+        id value = [self valueForKey:key];
+        BOOL canSerialize = [self canSerialize:value];
+        if (canSerialize) {
+            return [self serializeArrayOrDictionary:value];
+        }else{
+            return value = @"";
+        }
     }
     
     if ([type isEqualToString:@"i"] || [type isEqualToString:@"l"] || [type isEqualToString:@"q"]) {
@@ -403,6 +409,36 @@ static const char *getPropertyType(objc_property_t property) {
     
     return @"Unsupported Format";
     
+}
+
+- (BOOL)canSerialize:(id)object{
+    BOOL can = NO;
+    //If array
+    if ([object isKindOfClass:[NSArray class]]) {
+        NSArray *array = (NSArray*)object;
+        if (array.count != 0) {
+            can = ![array[0] isKindOfClass:[BWDataModel class]];
+        }
+    }else if ([object isKindOfClass:[NSMutableArray class]]){
+        NSMutableArray *array = (NSMutableArray*)object;
+        if (array.count != 0) {
+            can = ![array[0] isKindOfClass:[BWDataModel class]];
+        }
+    }
+    
+    //If dictionary
+    if ([object isKindOfClass:[NSDictionary class]]) {
+        NSDictionary *dict = (NSDictionary*)object;
+        if (dict.allKeys.count != 0) {
+            can = ![dict[dict.allKeys[0]] isKindOfClass:[BWDataModel class]];
+        }
+    }else if ([object isKindOfClass:[NSMutableDictionary class]]){
+        NSMutableDictionary *dict = (NSMutableDictionary*)object;
+        if (dict.allKeys.count != 0) {
+            can = ![dict[dict.allKeys[0]] isKindOfClass:[BWDataModel class]];
+        }
+    }
+    return can;
 }
 
 - (NSString *)description{

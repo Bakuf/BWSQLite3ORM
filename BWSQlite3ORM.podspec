@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'BWSQlite3ORM'
-  s.version          = '0.3.3'
+  s.version          = '0.3.4'
   s.summary          = 'Simple object-relational mapping set of classes for SQLite3.'
 
 # This description is used to generate tags and improve search results.
